@@ -1,0 +1,25 @@
+version: '3'
+services:
+  transfersh:
+    build: ./transfer.sh
+    image: transfersh:schniggie
+    container_name: transfersh
+    command:
+      - "--provider=local"
+      - "--basedir=/tmp"
+      - "--listener=8081"
+    ports:
+      - 8081:8081 # Unsecured HTTP Web Port
+    volumes:
+      - transfersh-data:/tmp
+
+  nifi:
+    image: apache/nifi:latest
+    ports:
+      - 8080:8080 # Unsecured HTTP Web Port
+    environment:
+      - NIFI_WEB_HTTP_PORT=8080
+      - NIFI_ELECTION_MAX_WAIT=1 min
+
+volumes:
+  transfersh-data:
