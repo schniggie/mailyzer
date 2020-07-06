@@ -1,0 +1,625 @@
+{
+   "flowContents":{
+      "identifier":"b86c392f-ce03-33cb-9142-fc906e6a524e",
+      "name":"Mailyzer",
+      "comments":"",
+      "position":{
+         "x":576.0,
+         "y":-88.0
+      },
+      "processGroups":[
+
+      ],
+      "remoteProcessGroups":[
+
+      ],
+      "processors":[
+         {
+            "identifier":"1b2d187d-ab80-3860-8744-06a73b3d66cc",
+            "name":"ExecuteScript",
+            "comments":"",
+            "position":{
+               "x":336.0,
+               "y":224.0
+            },
+            "bundle":{
+               "group":"org.apache.nifi",
+               "artifact":"nifi-scripting-nar",
+               "version":"1.11.4"
+            },
+            "style":{
+
+            },
+            "type":"org.apache.nifi.processors.script.ExecuteScript",
+            "properties":{
+               "Script File":null,
+               "Script Engine":"python",
+               "Script Body":"import email\nimport mimetypes\nfrom email.parser import Parser\nfrom org.apache.commons.io import IOUtils\nfrom java.nio.charset import StandardCharsets\nfrom java.io import BufferedReader, InputStreamReader\nfrom org.apache.nifi.processors.script import ExecuteScript\nfrom org.apache.nifi.processor.io import InputStreamCallback\nfrom org.apache.nifi.processor.io import StreamCallback\n\nclass PyInputStreamCallback(InputStreamCallback):\n    _text = None\n\n    def __init__(self):\n        pass\n\n    def getText(self) : \n        return self._text\n\n    def process(self, inputStream):\n        self._text = IOUtils.toString(inputStream, StandardCharsets.UTF_8)\n\nflowFile = session.get()\nif flowFile is not None :\n    reader = PyInputStreamCallback()\n    session.read(flowFile, reader)\n\n    msg = email.message_from_string(reader.getText())\n    body = \"\"\n\n    if msg.is_multipart():\n        html = None\n        for part in msg.walk():\n\n            print \"%s, %s\" % (part.get_content_type(), part.get_content_charset())\n\n            if part.get_content_charset() is None:\n                # We cannot know the character set, so return decoded \"something\"\n                text = part.get_payload(decode=True)\n                continue\n\n            charset = part.get_content_charset()\n\n            if part.get_content_type() == 'text/plain':\n                text = unicode(part.get_payload(decode=True), str(charset), \"ignore\").encode('utf8', 'replace')\n\n            if part.get_content_type() == 'text/html':\n                html = unicode(part.get_payload(decode=True), str(charset), \"ignore\").encode('utf8', 'replace')\n\n        if text is not None:\n            body = text.strip()\n        else:\n            body = html.strip()\n    else:\n        text = unicode(msg.get_payload(decode=True), msg.get_content_charset(), 'ignore').encode('utf8', 'replace')\n        body = text.strip()\n\n    tos = msg.get_all('to', [])\n    ccs = msg.get_all('cc', [])\n    resent_tos = msg.get_all('resent-to', [])\n    resent_ccs = msg.get_all('resent-cc', [])\n    all_recipients = email.utils.getaddresses(tos + ccs + resent_tos + resent_ccs)\n    all_recipients = ''.join(all_recipients[0])\n\n    flowFile = session.putAttribute(flowFile, 'msgto', all_recipients.decode('utf-8', 'ignore'))\n    flowFile = session.putAttribute(flowFile, 'msgbody', body.decode('utf-8', 'ignore'))\n    session.transfer(flowFile, ExecuteScript.REL_SUCCESS)",
+               "Module Directory":null
+            },
+            "propertyDescriptors":{
+               "Script File":{
+                  "name":"Script File",
+                  "displayName":"Script File",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "Script Engine":{
+                  "name":"Script Engine",
+                  "displayName":"Script Engine",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "Script Body":{
+                  "name":"Script Body",
+                  "displayName":"Script Body",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "Module Directory":{
+                  "name":"Module Directory",
+                  "displayName":"Module Directory",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               }
+            },
+            "schedulingPeriod":"0 sec",
+            "schedulingStrategy":"TIMER_DRIVEN",
+            "executionNode":"ALL",
+            "penaltyDuration":"30 sec",
+            "yieldDuration":"1 sec",
+            "bulletinLevel":"WARN",
+            "runDurationMillis":0,
+            "concurrentlySchedulableTaskCount":1,
+            "autoTerminatedRelationships":[
+               "failure"
+            ],
+            "scheduledState":"ENABLED",
+            "componentType":"PROCESSOR",
+            "groupIdentifier":"b86c392f-ce03-33cb-9142-fc906e6a524e"
+         },
+         {
+            "identifier":"5d3f8913-9155-3f08-b012-0285eeb2bdc4",
+            "name":"ConsumeIMAP",
+            "comments":"",
+            "position":{
+               "x":336.0,
+               "y":-16.0
+            },
+            "bundle":{
+               "group":"org.apache.nifi",
+               "artifact":"nifi-email-nar",
+               "version":"1.11.4"
+            },
+            "style":{
+
+            },
+            "type":"org.apache.nifi.processors.email.ConsumeIMAP",
+            "properties":{
+               "delete.messages":"false",
+               "folder":"INBOX",
+               "port":"993",
+               "connection.timeout":"30 sec",
+               "host":"REPLACE_IMAP_HOST",
+               "Mark Messages as Read":"false",
+               "user":"REPLACE_IMAP_USER",
+               "Use SSL":"true",
+               "fetch.size":"10"
+            },
+            "propertyDescriptors":{
+               "delete.messages":{
+                  "name":"delete.messages",
+                  "displayName":"Delete Messages",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "password":{
+                  "name":"password",
+                  "displayName":"Password",
+                  "identifiesControllerService":false,
+                  "sensitive":true
+               },
+               "folder":{
+                  "name":"folder",
+                  "displayName":"Folder",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "port":{
+                  "name":"port",
+                  "displayName":"Port",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "connection.timeout":{
+                  "name":"connection.timeout",
+                  "displayName":"Connection timeout",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "host":{
+                  "name":"host",
+                  "displayName":"Host Name",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "Mark Messages as Read":{
+                  "name":"Mark Messages as Read",
+                  "displayName":"Mark Messages as Read",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "user":{
+                  "name":"user",
+                  "displayName":"User Name",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "Use SSL":{
+                  "name":"Use SSL",
+                  "displayName":"Use SSL",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "fetch.size":{
+                  "name":"fetch.size",
+                  "displayName":"Fetch Size",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               }
+            },
+            "schedulingPeriod":"0 sec",
+            "schedulingStrategy":"TIMER_DRIVEN",
+            "executionNode":"ALL",
+            "penaltyDuration":"30 sec",
+            "yieldDuration":"1 sec",
+            "bulletinLevel":"WARN",
+            "runDurationMillis":0,
+            "concurrentlySchedulableTaskCount":1,
+            "autoTerminatedRelationships":[
+
+            ],
+            "scheduledState":"ENABLED",
+            "componentType":"PROCESSOR",
+            "groupIdentifier":"b86c392f-ce03-33cb-9142-fc906e6a524e"
+         },
+         {
+            "identifier":"4c35ccf6-bfb0-3f1d-b363-0812dd246296",
+            "name":"InvokeHTTP",
+            "comments":"",
+            "position":{
+               "x":952.0,
+               "y":0.0
+            },
+            "bundle":{
+               "group":"org.apache.nifi",
+               "artifact":"nifi-standard-nar",
+               "version":"1.11.4"
+            },
+            "style":{
+
+            },
+            "type":"org.apache.nifi.processors.standard.InvokeHTTP",
+            "properties":{
+               "Proxy Host":null,
+               "Attributes to Send":"urls",
+               "use-etag":"false",
+               "proxy-configuration-service":null,
+               "Proxy Type":"http",
+               "Connection Timeout":"5 secs",
+               "send-message-body":"true",
+               "Always Output Response":"false",
+               "etag-max-cache-size":"10MB",
+               "Put Response Body In Attribute":null,
+               "Use Chunked Encoding":"false",
+               "Follow Redirects":"True",
+               "Remote URL":"http://REPLACE_HOST_TRSNSFERSH:REPLACE_PORT/${msgto}",
+               "Content-Type":"${mime.type}",
+               "invokehttp-proxy-user":null,
+               "Read Timeout":"15 secs",
+               "Max Length To Put In Attribute":"256",
+               "ignore-response-content":"false",
+               "Proxy Port":null,
+               "SSL Context Service":null,
+               "Digest Authentication":"false",
+               "HTTP Method":"PUT",
+               "Add Response Headers to Request":"false",
+               "Basic Authentication Username":null,
+               "Include Date Header":"True",
+               "Penalize on \"No Retry\"":"false"
+            },
+            "propertyDescriptors":{
+               "Proxy Host":{
+                  "name":"Proxy Host",
+                  "displayName":"Proxy Host",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "Attributes to Send":{
+                  "name":"Attributes to Send",
+                  "displayName":"Attributes to Send",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "use-etag":{
+                  "name":"use-etag",
+                  "displayName":"Use HTTP ETag",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "proxy-configuration-service":{
+                  "name":"proxy-configuration-service",
+                  "displayName":"Proxy Configuration Service",
+                  "identifiesControllerService":true,
+                  "sensitive":false
+               },
+               "Proxy Type":{
+                  "name":"Proxy Type",
+                  "displayName":"Proxy Type",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "Basic Authentication Password":{
+                  "name":"Basic Authentication Password",
+                  "displayName":"Basic Authentication Password",
+                  "identifiesControllerService":false,
+                  "sensitive":true
+               },
+               "Connection Timeout":{
+                  "name":"Connection Timeout",
+                  "displayName":"Connection Timeout",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "send-message-body":{
+                  "name":"send-message-body",
+                  "displayName":"Send Message Body",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "Always Output Response":{
+                  "name":"Always Output Response",
+                  "displayName":"Always Output Response",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "etag-max-cache-size":{
+                  "name":"etag-max-cache-size",
+                  "displayName":"Maximum ETag Cache Size",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "Put Response Body In Attribute":{
+                  "name":"Put Response Body In Attribute",
+                  "displayName":"Put Response Body In Attribute",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "Use Chunked Encoding":{
+                  "name":"Use Chunked Encoding",
+                  "displayName":"Use Chunked Encoding",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "Follow Redirects":{
+                  "name":"Follow Redirects",
+                  "displayName":"Follow Redirects",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "Remote URL":{
+                  "name":"Remote URL",
+                  "displayName":"Remote URL",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "Content-Type":{
+                  "name":"Content-Type",
+                  "displayName":"Content-Type",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "invokehttp-proxy-user":{
+                  "name":"invokehttp-proxy-user",
+                  "displayName":"Proxy Username",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "Read Timeout":{
+                  "name":"Read Timeout",
+                  "displayName":"Read Timeout",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "Max Length To Put In Attribute":{
+                  "name":"Max Length To Put In Attribute",
+                  "displayName":"Max Length To Put In Attribute",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "invokehttp-proxy-password":{
+                  "name":"invokehttp-proxy-password",
+                  "displayName":"Proxy Password",
+                  "identifiesControllerService":false,
+                  "sensitive":true
+               },
+               "ignore-response-content":{
+                  "name":"ignore-response-content",
+                  "displayName":"Ignore response's content",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "Proxy Port":{
+                  "name":"Proxy Port",
+                  "displayName":"Proxy Port",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "SSL Context Service":{
+                  "name":"SSL Context Service",
+                  "displayName":"SSL Context Service",
+                  "identifiesControllerService":true,
+                  "sensitive":false
+               },
+               "Digest Authentication":{
+                  "name":"Digest Authentication",
+                  "displayName":"Use Digest Authentication",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "HTTP Method":{
+                  "name":"HTTP Method",
+                  "displayName":"HTTP Method",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "Add Response Headers to Request":{
+                  "name":"Add Response Headers to Request",
+                  "displayName":"Add Response Headers to Request",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "Basic Authentication Username":{
+                  "name":"Basic Authentication Username",
+                  "displayName":"Basic Authentication Username",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "Include Date Header":{
+                  "name":"Include Date Header",
+                  "displayName":"Include Date Header",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "Penalize on \"No Retry\"":{
+                  "name":"Penalize on \"No Retry\"",
+                  "displayName":"Penalize on \"No Retry\"",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               }
+            },
+            "schedulingPeriod":"0 sec",
+            "schedulingStrategy":"TIMER_DRIVEN",
+            "executionNode":"ALL",
+            "penaltyDuration":"30 sec",
+            "yieldDuration":"1 sec",
+            "bulletinLevel":"WARN",
+            "runDurationMillis":0,
+            "concurrentlySchedulableTaskCount":1,
+            "autoTerminatedRelationships":[
+               "Response",
+               "No Retry",
+               "Retry",
+               "Original",
+               "Failure"
+            ],
+            "scheduledState":"ENABLED",
+            "componentType":"PROCESSOR",
+            "groupIdentifier":"b86c392f-ce03-33cb-9142-fc906e6a524e"
+         },
+         {
+            "identifier":"6a488447-31b1-3d82-8efb-4e414463e29d",
+            "name":"ExecuteScript",
+            "comments":"",
+            "position":{
+               "x":952.0,
+               "y":424.0
+            },
+            "bundle":{
+               "group":"org.apache.nifi",
+               "artifact":"nifi-scripting-nar",
+               "version":"1.11.4"
+            },
+            "style":{
+
+            },
+            "type":"org.apache.nifi.processors.script.ExecuteScript",
+            "properties":{
+               "Script File":null,
+               "Script Engine":"python",
+               "Script Body":"import re\nimport quopri\nimport urllib\nfrom org.apache.commons.io import IOUtils\nfrom java.nio.charset import StandardCharsets\nfrom java.io import BufferedReader, InputStreamReader\nfrom org.apache.nifi.processors.script import ExecuteScript\nfrom org.apache.nifi.processor.io import InputStreamCallback\nfrom org.apache.nifi.processor.io import StreamCallback\n\nclass PyInputStreamCallback(InputStreamCallback):\n    _text = None\n\n    def __init__(self):\n        pass\n\n    def getText(self) : \n        return self._text\n\n    def process(self, inputStream):\n        self._text = IOUtils.toString(inputStream, StandardCharsets.UTF_8)\n\nflowFile = session.get()\nif flowFile is not None :\n    reader = PyInputStreamCallback()\n    session.read(flowFile, reader)\n\n    separator = '; '\n    #urls = []\n    #urls = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', reader.getText())\n    regex = 'http[s]?://(?:[a-zA-Z]|[0-9]|[#-/@.&+=;:?]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'\n    urls = re.findall(regex, reader.getText())\n    urls = list(dict.fromkeys(urls))\n    length = len(urls) \n    for i in range(length):\n        urls[i] = quopri.decodestring(urls[i])\n        urls[i] = urllib.quote(urls[i], '/:')\n\n    urls = separator.join(urls)\n\n    flowFile = session.putAttribute(flowFile, 'urls', urls)\n    session.transfer(flowFile, ExecuteScript.REL_SUCCESS)",
+               "Module Directory":null
+            },
+            "propertyDescriptors":{
+               "Script File":{
+                  "name":"Script File",
+                  "displayName":"Script File",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "Script Engine":{
+                  "name":"Script Engine",
+                  "displayName":"Script Engine",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "Script Body":{
+                  "name":"Script Body",
+                  "displayName":"Script Body",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               },
+               "Module Directory":{
+                  "name":"Module Directory",
+                  "displayName":"Module Directory",
+                  "identifiesControllerService":false,
+                  "sensitive":false
+               }
+            },
+            "schedulingPeriod":"0 sec",
+            "schedulingStrategy":"TIMER_DRIVEN",
+            "executionNode":"ALL",
+            "penaltyDuration":"30 sec",
+            "yieldDuration":"1 sec",
+            "bulletinLevel":"WARN",
+            "runDurationMillis":0,
+            "concurrentlySchedulableTaskCount":1,
+            "autoTerminatedRelationships":[
+               "failure"
+            ],
+            "scheduledState":"ENABLED",
+            "componentType":"PROCESSOR",
+            "groupIdentifier":"b86c392f-ce03-33cb-9142-fc906e6a524e"
+         }
+      ],
+      "inputPorts":[
+
+      ],
+      "outputPorts":[
+
+      ],
+      "connections":[
+         {
+            "identifier":"b14e91ad-b2ae-3f63-8704-7103ac45efc3",
+            "name":"",
+            "source":{
+               "id":"5d3f8913-9155-3f08-b012-0285eeb2bdc4",
+               "type":"PROCESSOR",
+               "groupId":"b86c392f-ce03-33cb-9142-fc906e6a524e",
+               "name":"ConsumeIMAP",
+               "comments":""
+            },
+            "destination":{
+               "id":"1b2d187d-ab80-3860-8744-06a73b3d66cc",
+               "type":"PROCESSOR",
+               "groupId":"b86c392f-ce03-33cb-9142-fc906e6a524e",
+               "name":"ExecuteScript",
+               "comments":""
+            },
+            "labelIndex":1,
+            "zIndex":0,
+            "selectedRelationships":[
+               "success"
+            ],
+            "backPressureObjectThreshold":10000,
+            "backPressureDataSizeThreshold":"1 GB",
+            "flowFileExpiration":"0 sec",
+            "prioritizers":[
+
+            ],
+            "bends":[
+
+            ],
+            "loadBalanceStrategy":"DO_NOT_LOAD_BALANCE",
+            "partitioningAttribute":"",
+            "loadBalanceCompression":"DO_NOT_COMPRESS",
+            "componentType":"CONNECTION",
+            "groupIdentifier":"b86c392f-ce03-33cb-9142-fc906e6a524e"
+         },
+         {
+            "identifier":"2083cd0a-415b-300e-bed4-4844cf4472e7",
+            "name":"",
+            "source":{
+               "id":"6a488447-31b1-3d82-8efb-4e414463e29d",
+               "type":"PROCESSOR",
+               "groupId":"b86c392f-ce03-33cb-9142-fc906e6a524e",
+               "name":"ExecuteScript",
+               "comments":""
+            },
+            "destination":{
+               "id":"4c35ccf6-bfb0-3f1d-b363-0812dd246296",
+               "type":"PROCESSOR",
+               "groupId":"b86c392f-ce03-33cb-9142-fc906e6a524e",
+               "name":"InvokeHTTP",
+               "comments":""
+            },
+            "labelIndex":1,
+            "zIndex":0,
+            "selectedRelationships":[
+               "success"
+            ],
+            "backPressureObjectThreshold":10000,
+            "backPressureDataSizeThreshold":"1 GB",
+            "flowFileExpiration":"0 sec",
+            "prioritizers":[
+
+            ],
+            "bends":[
+
+            ],
+            "loadBalanceStrategy":"DO_NOT_LOAD_BALANCE",
+            "partitioningAttribute":"",
+            "loadBalanceCompression":"DO_NOT_COMPRESS",
+            "componentType":"CONNECTION",
+            "groupIdentifier":"b86c392f-ce03-33cb-9142-fc906e6a524e"
+         },
+         {
+            "identifier":"e27f1140-551d-3308-8ca8-e40c83a79ada",
+            "name":"",
+            "source":{
+               "id":"1b2d187d-ab80-3860-8744-06a73b3d66cc",
+               "type":"PROCESSOR",
+               "groupId":"b86c392f-ce03-33cb-9142-fc906e6a524e",
+               "name":"ExecuteScript",
+               "comments":""
+            },
+            "destination":{
+               "id":"6a488447-31b1-3d82-8efb-4e414463e29d",
+               "type":"PROCESSOR",
+               "groupId":"b86c392f-ce03-33cb-9142-fc906e6a524e",
+               "name":"ExecuteScript",
+               "comments":""
+            },
+            "labelIndex":1,
+            "zIndex":0,
+            "selectedRelationships":[
+               "success"
+            ],
+            "backPressureObjectThreshold":10000,
+            "backPressureDataSizeThreshold":"1 GB",
+            "flowFileExpiration":"0 sec",
+            "prioritizers":[
+
+            ],
+            "bends":[
+
+            ],
+            "loadBalanceStrategy":"DO_NOT_LOAD_BALANCE",
+            "partitioningAttribute":"",
+            "loadBalanceCompression":"DO_NOT_COMPRESS",
+            "componentType":"CONNECTION",
+            "groupIdentifier":"b86c392f-ce03-33cb-9142-fc906e6a524e"
+         }
+      ],
+      "labels":[
+
+      ],
+      "funnels":[
+
+      ],
+      "controllerServices":[
+
+      ],
+      "variables":{
+
+      },
+      "componentType":"PROCESS_GROUP"
+   },
+   "externalControllerServices":{
+
+   },
+   "parameterContexts":{
+
+   },
+   "flowEncodingVersion":"1.0"
+}
