@@ -1,0 +1,3 @@
+[submodule "transfer.sh"]
+	path = transfer.sh
+	url = https://github.com/schniggie/transfer.sh
